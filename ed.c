@@ -37,6 +37,7 @@ typedef unsigned int u32;
 #define _E_CMD 5
 #define P_CMD	6
 #define N_CMD	7
+#define L_CMD	8
 
 /* main */
 char mainbuf[65535];
@@ -69,7 +70,7 @@ inline static void qcmd_exec(void);
 inline static void ucmd_exec(void);
 inline static void fcmd_exec(void);
 inline static u8 ecmd_exec(void);
-inline static u8 pcmd_exec(u8 number);
+inline static u8 pcmd_exec(u8 number, u8 list);
 
 inline static void opentmp(void)
 {
@@ -111,14 +112,15 @@ inline static u8 ecmd_exec(void)
 	return 1;
 }
 
-inline static u8 pcmd_exec(u8 number)
+inline static u8 pcmd_exec(u8 number, u8 list)
 {
 	char buf[65535];
 	ssize_t i,r,l;
-	size_t cur;
+	size_t cur,j;
 	u8 flag=0;
 	cur=0;
 	l=0;
+	j=0;
 
 	if (tmpfd<0)
 		return 0;
@@ -133,11 +135,28 @@ inline static u8 pcmd_exec(u8 number)
 				cur++;
 				if (cur>=x)
 					flag=1;
-				if (flag)
+				if (flag) {
 					if (number)
-						printf("%ld\t%s\n",cur,buf+l);
-					else
+						printf("%ld\t",cur);
+					if (!list)
 						printf("%s\n",buf+l);
+					else {
+						for (j=0;j<strlen(buf+l);j++) {
+							switch (buf[j+l]) {
+								case '\a': twochar('\\','a'); break;
+								case '\b': twochar('\\','b'); break;
+								case '\f': twochar('\\','f'); break;
+								case '\r': twochar('\\','r'); break;
+								case '\t': twochar('\\','t'); break;
+								case '\v': twochar('\\','v'); break;
+								case '$': twochar('\\','$'); break;
+								default: putchar(buf[j+l]); break;
+							}
+							if ((j+1)==strlen(buf+l))
+								twochar('$',0x0a);
+						}
+					}
+				}
 				l=i+1;
 				if (cur==y)
 					goto exit;
@@ -198,11 +217,15 @@ inline static void exec(void)
 				goto err;
 			break;
 		case P_CMD:
-			if (!pcmd_exec(0))
+			if (!pcmd_exec(0,0))
 				goto err;
 			break;
 		case N_CMD:
-			if (!pcmd_exec(1))
+			if (!pcmd_exec(1,0))
+				goto err;
+			break;
+		case L_CMD:
+			if (!pcmd_exec(0,1))
 				goto err;
 			break;
 	}
@@ -375,6 +398,7 @@ L0:
 		switch(op) {	
 			case 'p': cmdcode=P_CMD; return;	
 			case 'n': cmdcode=N_CMD; return;	
+			case 'l': cmdcode=L_CMD; return;
 		}	
 		goto err;	
 	}
