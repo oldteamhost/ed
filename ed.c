@@ -98,7 +98,7 @@ inline static u8 wcmd_exec(void)
 
 	if (tmpfd<0)
 		return 0;
-	if (y>lastline||x>y)
+	if (y>lastline||x>lastline||x>y||!x||!y)
 		return 0;
 	if ((fd=open(lastfile,O_WRONLY|O_CREAT|O_TRUNC, 0644))==-1)
 		return 0;
@@ -163,7 +163,7 @@ inline static u8 ecmd_exec(void)
 
 inline static u8 eqcmd_exec(void)
 {
-	if (x>lastline)
+	if (x>lastline||!x)
 		return 0;
 	printf("%ld\n",x);
 	return 1;
@@ -181,7 +181,7 @@ inline static u8 pcmd_exec(u8 number, u8 list)
 
 	if (tmpfd<0)
 		return 0;
-	if (y>lastline||x>y)
+	if (y>lastline||x>lastline||x>y||!x||!y)
 		return 0;
 	lseek(tmpfd, 0, SEEK_SET); /* to start */
 	while ((r=read(tmpfd,buf,sizeof(buf)))>0) {
@@ -190,8 +190,7 @@ inline static u8 pcmd_exec(u8 number, u8 list)
 			if (buf[i]==0x0a) {
 				buf[i]='\0';
 				cur++;
-				if (cur>=x)
-					flag=1;
+				flag=(cur>=x)?1:flag;
 				if (flag) {
 					if (number)
 						printf("%ld\t",cur);
@@ -331,30 +330,15 @@ inline static void cmd(void)
 		cmdcode=P_CMD;
 		goto exit;
 	}
-	/* <cmd> [opt] */
-	if (isalpha(cmdin[0])) {
-		op=cmdin[0];
-		x=0;
-		y=0;
-		switch(op) {
-			case 'q': cmdcode=Q_CMD; return;
-			case 'u': cmdcode=U_CMD; return;
-			case 'Q': cmdcode=_Q_CMD; return;
-			case 'e': cmdcode=E_CMD; break;
-			case 'f': cmdcode=F_CMD; break;
-			case 'E': cmdcode=_E_CMD; break;
-			default: goto err;
-		}
-		if (!strlen(lastfile)&&!(l-1))
-			goto err;
-		if ((l-1))
-			memset(lastfile,0,sizeof(lastfile)),
-				memcpy(lastfile,(cmdin+2),(l-2));
-		goto exit;
-	}
+
 	/* [[x][,|;][y]]<cmd>[ ][param] */
 	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||
-		cmdin[0]==';'||isdigit(cmdin[0])) {
+		cmdin[0]==';'||isdigit(cmdin[0])||isalpha(cmdin[0])) {
+
+		if (isalpha(cmdin[0])) {
+			op=cmdin[0];
+			goto L0;
+		}
 
 		for (i=0;i<l;i++) {
 			num1[i]=cmdin[i];
@@ -467,10 +451,6 @@ L2:
 			}
 		}
 
-		/* param */
-		memset(num1,0,sizeof(num1));
-		for (i=0;i<l;i++) { if (isalpha(cmdin[i])&&(i+1)!=l) { stopflag=1; break; } }
-		for (i++,j=0;i<l&&stopflag;i++) param[j++]=cmdin[i];
 
 		/* only num */
 		if (!op) {
@@ -481,6 +461,12 @@ L2:
 				x=y;
 		}
 
+L0:
+		/* param */
+		memset(num1,0,sizeof(num1));
+		for (i=0;i<l;i++) { if (isalpha(cmdin[i])&&(i+1)!=l) { stopflag=1; break; } }
+		for (i++,j=0;i<l&&stopflag;i++) param[j++]=cmdin[i];
+
 		/* get cmdcode */
 		switch(op) { 
 			case 'p': cmdcode=P_CMD; goto exit;
@@ -488,9 +474,22 @@ L2:
 			case 'l': cmdcode=L_CMD; goto exit;
 			case '=': cmdcode=EQ_CMD; goto exit;
 			case 'w': cmdcode=W_CMD; goto exit;
+			case 'q': cmdcode=Q_CMD; goto exit;
+			case 'u': cmdcode=U_CMD; goto exit;
+			case 'Q': cmdcode=_Q_CMD; goto exit;
+			case 'e': cmdcode=E_CMD; goto L4;
+			case 'E': cmdcode=_E_CMD; goto L4;
+			case 'f': cmdcode=F_CMD; goto L4;
 		}
 		goto err;
 	}
+L4:
+	if (!strlen(lastfile)&&!(l-1))
+		goto err;
+	if ((l-1))
+		memset(lastfile,0,sizeof(lastfile)),
+			memcpy(lastfile,(cmdin+2),(l-2));
+	goto exit;
 
 err:
 	err=1;
