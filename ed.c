@@ -262,7 +262,7 @@ inline static void cmd(void)
 		y=x;
 		op='p';
 		cmdcode=P_CMD;
-		return;
+		goto exit;
 	}
 	/* <cmd> [opt] */
 	if (isalpha(cmdin[0])) {
@@ -283,7 +283,7 @@ inline static void cmd(void)
 		if ((l-1))
 			memset(lastfile,0,sizeof(lastfile)),
 				memcpy(lastfile,(cmdin+2),(l-2));
-		return;
+		goto exit;
 	}
 	/* [[x][,|;][y]]<cmd> */
 	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||
@@ -347,8 +347,7 @@ L1:
 
 		/* processing */
 		switch (num2[0]) {
-			case ';':
-			case '.': x=curline; break;
+			case ';': case '.': x=curline; break;
 			case '$': x=lastline; break;
 			case ',': x=1; break;
 			default: x=atoll(num2); break;
@@ -363,9 +362,8 @@ L1:
 		}
 
 
-		memset(num1,0,sizeof(num1));
-		j=i=0;
-		++pos;	/* skip , */
+		/* nxt arg */
+		memset(num1,0,sizeof(num1)),j=i=0,++pos /* skip ;/, */;
 		for (i=pos;i<l;i++) {
 			num1[j++]=cmdin[i];
 			if (isalpha(cmdin[i]))
@@ -400,11 +398,12 @@ L2:
 				op=cmdin[i];
 			}
 		}
-L0:
+
+		/* get cmdcode */
 		switch(op) {	
-			case 'p': cmdcode=P_CMD; return;	
-			case 'n': cmdcode=N_CMD; return;	
-			case 'l': cmdcode=L_CMD; return;
+			case 'p': cmdcode=P_CMD; goto exit;	
+			case 'n': cmdcode=N_CMD; goto exit;	
+			case 'l': cmdcode=L_CMD; goto exit;
 		}	
 		goto err;	
 	}
@@ -423,6 +422,7 @@ inline static int loop(void)
 			cmd();
 		exec(), fflush(stdout);
 	}
+	return 0;
 }
 
 inline static noreturn void quit(int code)
