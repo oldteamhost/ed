@@ -412,12 +412,11 @@ L2:
 			}
 		}
 		if (del==0&&!op) {
-			y=x;
-			for (i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
+			for (y=x,i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
 			op=cmdin[i];
 		}
 
-		/* only num */
+		/* only num = p */
 		if (!op) {
 			op='p';
 			if (!y)
