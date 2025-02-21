@@ -302,8 +302,8 @@ err:
 
 inline static void cmd(void)
 {
-	char	num1[2048];
-	char	num2[2048];
+	char	a[2048];
+	char	b[2048];
 	size_t	l,i,j,m;
 	u8	op;
 	u8	stopflag;
@@ -315,8 +315,8 @@ inline static void cmd(void)
 
 	del=stopflag=nullx=op=0;
 
-	memset(num1,0,sizeof(num1));
-	memset(num2,0,sizeof(num2));
+	memset(a,0,sizeof(a));
+	memset(b,0,sizeof(b));
 	l=strlen(cmdin), cmdin[--l]='\0';
 
 	/* null command */
@@ -338,26 +338,26 @@ inline static void cmd(void)
 		}
 
 		for (i=0;i<l;i++) {
-			num1[i]=cmdin[i];
+			a[i]=cmdin[i];
 			if (cmdin[i]==';'||cmdin[i]==',')
 				break;
 		}
-		num1[i]='\0',pos=i,del=cmdin[pos];
+		a[i]='\0',pos=i,del=cmdin[pos];
 L1:
 		/* expression parsing 100-1-1-4+4+43 */
-		for (m=anum=snum=j=i=0;i<strlen(num1);i++) {
-			if (num1[i]=='-'||num1[i]=='+') {
-				for (++i,j=i;j<strlen(num1)&&(num1[j]!='+'&&num1[j]!='-');j++);
-				if (num1[i-1]=='-')
-					snum+=atoll(num1+i);
+		for (m=anum=snum=j=i=0;i<strlen(a);i++) {
+			if (a[i]=='-'||a[i]=='+') {
+				for (++i,j=i;j<strlen(a)&&(a[j]!='+'&&a[j]!='-');j++);
+				if (a[i-1]=='-')
+					snum+=atoll(a+i);
 				else
-					anum+=atoll(num1+i);
+					anum+=atoll(a+i);
 				i=j-1;
 			}
 			else
-				num2[m++]=num1[i];
+				b[m++]=a[i];
 		}
-		num2[m]='\0';
+		b[m]='\0';
 
 		if (stopflag) {
 			stopflag=0;
@@ -365,14 +365,14 @@ L1:
 		}
 
 		/* processing */
-		switch (num2[0]) {
+		switch (b[0]) {
 			case ';': case '.': x=curline; break;
 			case '$': x=lastline; break;
 			case ',': x=1; break;
-			default: x=atoll(num2); break;
+			default: x=atoll(b); break;
 		}
 		x-=snum,x+=anum;
-		if (!strlen(num2)) {
+		if (!strlen(b)) {
 			if (del==',')
 				x=1;
 			if (del==';')
@@ -382,26 +382,26 @@ L1:
 
 
 		/* nxt arg */
-		memset(num1,0,sizeof(num1)),j=i=0,++pos /* skip ;/, */;
+		memset(a,0,sizeof(a)),j=i=0,++pos /* skip ;/, */;
 		for (i=pos;i<l;i++) {
-			num1[j++]=cmdin[i];
+			a[j++]=cmdin[i];
 			if (isalpha(cmdin[i]))
 				break;
 		}
-		num1[j]='\0',pos=i,stopflag=1;
-		if (isalpha(num1[j-1])||num1[j-1]=='=')
-			op=num1[j-1];
+		a[j]='\0',pos=i,stopflag=1;
+		if (isalpha(a[j-1])||a[j-1]=='=')
+			op=a[j-1];
 		goto L1;
 L2:
 		/* processing */
-		switch (num2[0]) {
+		switch (b[0]) {
 			case '.': y=curline; break;
 			case '$': y=lastline; break;
 			case ';': case ',': y=x; break;
-			default: y=atoll(num2); break;
+			default: y=atoll(b); break;
 		}
 		y-=snum,y+=anum;
-		if (!(strlen(num1)-1)||!strlen(num1)) {
+		if (!(strlen(a)-1)||!strlen(a)) {
 			if (op) {
 				if (del==','||del==';')
 					y=x;
@@ -431,7 +431,7 @@ L2:
 
 L0:
 		/* param */
-		memset(num1,0,sizeof(num1));
+		memset(a,0,sizeof(a));
 		for (i=0;i<l;i++) { if (isalpha(cmdin[i])&&(i+1)!=l) { stopflag=1; break; } }
 		for (i++,j=0;i<l&&stopflag;i++) param[j++]=cmdin[i];
 
