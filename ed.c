@@ -304,7 +304,7 @@ inline static void cmd(void)
 {
 	char	num1[2048];
 	char	num2[2048];
-	size_t	l,i,j;
+	size_t	l,i,j,m;
 	u8	op;
 	u8	stopflag;
 	u8	del;
@@ -312,8 +312,6 @@ inline static void cmd(void)
 	size_t	anum;
 	size_t	snum;
 	size_t	pos;
-	u8	anumflag;
-	u8	snumflag;
 
 	del=stopflag=nullx=op=0;
 
@@ -346,50 +344,21 @@ inline static void cmd(void)
 		}
 		num1[i]='\0',pos=i,del=cmdin[pos];
 L1:
-		/* expression parsing -4-3+4+3 */
-		anumflag=snumflag=0;
-		anum=snum=0;
-		for (j=i=0;i<strlen(num1);i++) {
+		/* expression parsing 100-1-1-4+4+43 */
+		for (m=anum=snum=j=i=0;i<strlen(num1);i++) {
 			if (num1[i]=='-'||num1[i]=='+') {
-				if (j>0) {
-					num2[j]='\0';
-					if (snumflag)
-						snum+=atoll(num2);
-					else if (anumflag)
-						anum+=atoll(num2);
-					j=0;
-					memset(num2,0,sizeof(num2));
-				}
+				for (++i,j=i;j<strlen(num1)&&(num1[j]!='+'&&num1[j]!='-');j++);
+				if (num1[i-1]=='-')
+					snum+=atoll(num1+i);
+				else
+					anum+=atoll(num1+i);
+				i=j-1;
 			}
-			if (num1[i]=='-') {
-				snumflag=1;
-				anumflag=0;
-				continue;
-			}
-			else if (num1[i]=='+') {
-				anumflag=1;
-				snumflag=0;
-				continue;
-			}
-			if (snumflag||anumflag)
-				num2[j++]=num1[i];
+			else
+				num2[m++]=num1[i];
 		}
-		if (j>0) {
-			num2[j]='\0';
-			if (snumflag)
-				snum+=atoll(num2);
-			else if (anumflag)
-				anum+=atoll(num2);
-			memset(num2,0,sizeof(num2));
-		}
+		num2[m]='\0';
 
-		/* get num from arg1 */
-		for (j=i=0;i<strlen(num1);i++) {
-			if (num1[i]=='-'||num1[i]=='+')
-				break;
-			num2[j++]=num1[i];
-		}
-		num2[j]='\0';
 		if (stopflag) {
 			stopflag=0;
 			goto L2;
