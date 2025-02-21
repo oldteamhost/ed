@@ -237,12 +237,20 @@ err:
 
 inline static void cmd(void)
 {
-	char num1[1024],num2[1024];
-	size_t l,i,m,p,j;
-	u8 flag, op,minus,plus;
-	u8 stopflag=0;
-	u8 del=0;
-	u8 nullx=0;
+	char	num1[2048];
+	char	num2[2048];
+	size_t	l,i,j;
+	u8	op;
+	u8	stopflag;
+	u8	del;
+	u8	nullx;
+	size_t	anum;
+	size_t	snum;
+	size_t	pos;
+	u8	anumflag;
+	u8	snumflag;
+
+	del=stopflag=nullx=0;
 
 	memset(num1,0,sizeof(num1));
 	memset(num2,0,sizeof(num2));
@@ -278,20 +286,17 @@ inline static void cmd(void)
 		return;
 	}
 	/* [[x][,|;][y]]<cmd> */
-	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||cmdin[0]==';'||isdigit(cmdin[0])) {
+	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||
+		cmdin[0]==';'||isdigit(cmdin[0])) {
 
-		/* ARG1 */
-		size_t anum,snum,pos;
-		u8 anumflag,snumflag;
 		for (i=0;i<l;i++) {
 			num1[i]=cmdin[i];
 			if (cmdin[i]==';'||cmdin[i]==',')
 				break;
 		}
-		num1[i]='\0';
-		pos=i;
-		del=cmdin[pos];
+		num1[i]='\0',pos=i,del=cmdin[pos];
 L1:
+		/* expression parsing -4-3+4+3 */
 		anumflag=snumflag=0;
 		anum=snum=0;
 		for (j=i=0;i<strlen(num1);i++) {
@@ -327,6 +332,8 @@ L1:
 				anum+=atoll(num2);
 			memset(num2,0,sizeof(num2));
 		}
+
+		/* get num from arg1 */
 		for (j=i=0;i<strlen(num1);i++) {
 			if (num1[i]=='-'||num1[i]=='+')
 				break;
@@ -337,16 +344,16 @@ L1:
 			stopflag=0;
 			goto L2;
 		}
-		if (num2[0]=='.')
-			x=(curline-snum)+anum;
-		else if (num2[0]=='$')
-			x=(lastline-snum)+anum;
-		else if (num2[0]==',')
-			x=(1-snum)+anum;
-		else if (num2[0]==';')
-			x=(curline-snum)+anum;
-		else
-			x=(atoll(num2)-snum)+anum;
+
+		/* processing */
+		switch (num2[0]) {
+			case ';':
+			case '.': x=curline; break;
+			case '$': x=lastline; break;
+			case ',': x=1; break;
+			default: x=atoll(num2); break;
+		}
+		x-=snum,x+=anum;
 		if (!strlen(num2)) {
 			if (del==',')
 				x=1;
@@ -356,7 +363,6 @@ L1:
 		}
 
 
-		/* ARG 2 */
 		memset(num1,0,sizeof(num1));
 		j=i=0;
 		++pos;	/* skip , */
@@ -371,14 +377,14 @@ L1:
 		stopflag=1;
 		goto L1;
 L2:
-		if (num2[0]=='.')
-			y=(curline-snum)+anum;
-		else if (num2[0]=='$')
-			y=(lastline-snum)+anum;
-		else if (num2[0]==','||num2[0]==';')
-			y=(x-snum)+anum;
-		else
-			y=(atoll(num2)-snum)+anum;
+		/* processing */
+		switch (num2[0]) {
+			case '.': y=curline; break;
+			case '$': y=lastline; break;
+			case ';': case ',': y=x; break;
+			default: y=atoll(num2); break;
+		}
+		y-=snum,y+=anum;
 		if (!(strlen(num1)-1)||!strlen(num1)) {
 			if (del==','||del==';')
 				y=x;
