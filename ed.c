@@ -66,7 +66,6 @@ inline static void closetmp(void);
 inline static void init(void);
 inline static void exec(void);
 inline static void cmd(void);
-inline static int loop(void);
 inline static noreturn void quit(int code);
 
 inline static void qcmd_exec(void);
@@ -412,6 +411,7 @@ L1:
 			nullx=1;
 		}
 
+
 		/* nxt arg */
 		memset(num1,0,sizeof(num1)),j=i=0,++pos /* skip ;/, */;
 		for (i=pos;i<l;i++) {
@@ -450,6 +450,7 @@ L2:
 			}
 		}
 
+
 		/* only num */
 		if (!op) {
 			op='p';
@@ -471,7 +472,7 @@ L0:
 			case 'n': cmdcode=N_CMD; goto exit;
 			case 'l': cmdcode=L_CMD; goto exit;
 			case '=': cmdcode=EQ_CMD; goto exit;
-			case 'w': cmdcode=W_CMD; goto exit;
+			case 'w': cmdcode=W_CMD; goto L4;
 			case 'q': cmdcode=Q_CMD; goto exit;
 			case 'u': cmdcode=U_CMD; goto exit;
 			case 'Q': cmdcode=_Q_CMD; goto exit;
@@ -482,11 +483,11 @@ L0:
 		goto err;
 	}
 L4:
-	if (!strlen(lastfile)&&!(l-1))
+	if (!strlen(lastfile)&&!(strlen(param)-1))
 		goto err;
-	if ((l-1))
+	if ((strlen(param)))
 		memset(lastfile,0,sizeof(lastfile)),
-			memcpy(lastfile,(cmdin+2),(l-2));
+			memcpy(lastfile,param+1,strlen(param)-1);
 	goto exit;
 
 err:
@@ -499,17 +500,6 @@ exit:
 	return;
 }
 
-inline static int loop(void)
-{
-	for (;;) {
-		init();
-		if (fgets(cmdin,sizeof(cmdin),stdin))
-			cmd();
-		exec(), fflush(stdout);
-	}
-	return 0;
-}
-
 inline static noreturn void quit(int code)
 {
 	if (tmpfd>=0)
@@ -520,5 +510,11 @@ inline static noreturn void quit(int code)
 int main(int argc, char **argv)
 {
 	signal(SIGINT, quit);
-	return loop();
+	for (;;) {
+		init();
+		if (fgets(cmdin,sizeof(cmdin),stdin))
+			cmd();
+		exec(), fflush(stdout);
+	}
+	return 0;
 }
