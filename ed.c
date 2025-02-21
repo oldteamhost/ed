@@ -330,18 +330,17 @@ inline static void cmd(void)
 
 	/* [[x][,|;][y]]<cmd>[ ][param] */
 	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||
-		cmdin[0]==';'||isdigit(cmdin[0])||isalpha(cmdin[0])) {
+		cmdin[0]==';'||isdigit(cmdin[0])||
+		isalpha(cmdin[0])) {
 
+		/* no args */
 		if (isalpha(cmdin[0])) {
 			op=cmdin[0];
 			goto L0;
 		}
 
-		for (i=0;i<l;i++) {
-			a[i]=cmdin[i];
-			if (cmdin[i]==';'||cmdin[i]==',')
-				break;
-		}
+		/* get x */
+		for (i=0;i<l&&cmdin[i]!=';'&&cmdin[i]!=',';i++) { a[i]=cmdin[i]; }
 		a[i]='\0',pos=i,del=cmdin[pos];
 L1:
 		/* expression parsing 100-1-1-4+4+43 */
@@ -359,12 +358,13 @@ L1:
 		}
 		b[m]='\0';
 
+		/* arg2? */
 		if (stopflag) {
 			stopflag=0;
 			goto L2;
 		}
 
-		/* processing */
+		/* processing arg1 */
 		switch (b[0]) {
 			case ';': case '.': x=curline; break;
 			case '$': x=lastline; break;
@@ -380,18 +380,15 @@ L1:
 			nullx=1;
 		}
 
-
-		/* nxt arg */
+		/* get arg2 */
 		memset(a,0,sizeof(a)),j=i=0,++pos /* skip ;/, */;
-		for (i=pos;i<l;i++) {
-			a[j++]=cmdin[i];
-			if (isalpha(cmdin[i]))
-				break;
-		}
+		for (i=pos;i<l&&!isalpha(cmdin[i]);i++) { a[j++]=cmdin[i]; }
 		a[j]='\0',pos=i,stopflag=1;
+		
+		/* get op */
 		if (isalpha(a[j-1])||a[j-1]=='=')
 			op=a[j-1];
-		goto L1;
+		goto L1; /* goto exp parse */
 L2:
 		/* processing */
 		switch (b[0]) {
@@ -411,9 +408,7 @@ L2:
 					x=curline,y=lastline;
 				else if (del==0) {
 					y=x;
-					for (i=0;i<l;i++)
-						if (isalpha(cmdin[i])||cmdin[i]=='=')
-							break;
+					for (i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
 					op=cmdin[i];
 				}
 			}
