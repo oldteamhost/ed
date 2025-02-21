@@ -68,7 +68,7 @@ inline static void exec(void);
 inline static void cmd(void);
 inline static noreturn void quit(int code);
 
-inline static void qcmd_exec(void);
+inline static void quited(void);
 inline static void undo(void);
 inline static void filename(void);
 inline static u8 edit(void);
@@ -233,7 +233,7 @@ inline static void undo(void)
 {
 }
 
-inline static void qcmd_exec(void)
+inline static void quited(void)
 {
 	if (changeflag) {
 		changeflag=0;
@@ -258,13 +258,13 @@ inline static void exec(void)
 		goto err;
 	switch(cmdcode) {
 		case Q_CMD:
-			qcmd_exec();
+			quited();
 			break;
 		case U_CMD:
 			undo();
 			break;
 		case _Q_CMD:
-			changeflag=0, qcmd_exec();
+			changeflag=0, quited();
 			break;
 		case F_CMD:
 			filename();
