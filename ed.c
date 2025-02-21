@@ -340,7 +340,7 @@ inline static void cmd(void)
 		}
 
 		/* get x */
-		for (i=0;i<l&&cmdin[i]!=';'&&cmdin[i]!=',';i++) { a[i]=cmdin[i]; }
+		for (i=0;i<l&&(a[i]=cmdin[i])!=';'&&cmdin[i]!=',';i++);
 		a[i]='\0',pos=i,del=cmdin[pos];
 L1:
 		/* expression parsing 100-1-1-4+4+43 */
@@ -373,16 +373,19 @@ L1:
 		}
 		x-=snum,x+=anum;
 		if (!strlen(b)) {
-			if (del==',')
-				x=1;
-			if (del==';')
-				x=curline;
+			switch (del) {
+				case ',': x=1; break;
+				case ';': x=curline; break;
+			}
 			nullx=1;
 		}
 
 		/* get arg2 */
 		memset(a,0,sizeof(a)),j=i=0,++pos /* skip ;/, */;
-		for (i=pos;i<l&&!isalpha(cmdin[i]);i++) { a[j++]=cmdin[i]; }
+		for (i=pos;i<l&&!isalpha(cmdin[i]);i++)  
+  			a[j++]=cmdin[i];
+		if (i<l)  
+  			a[j++]=cmdin[i];
 		a[j]='\0',pos=i,stopflag=1;
 		
 		/* get op */
