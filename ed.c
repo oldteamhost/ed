@@ -417,7 +417,6 @@ L2:
 			op=cmdin[i];
 		}
 
-
 		/* only num */
 		if (!op) {
 			op='p';
