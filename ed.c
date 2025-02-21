@@ -369,10 +369,7 @@ L1:
 			if (isalpha(cmdin[i]))
 				break;
 		}
-		num1[j]='\0';
-		op=num1[j-1];
-		pos=i;
-		stopflag=1;
+		num1[j]='\0',op=num1[j-1],pos=i,stopflag=1;
 		goto L1;
 L2:
 		/* processing */
