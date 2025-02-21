@@ -382,9 +382,9 @@ L1:
 
 		/* get arg2 */
 		memset(a,0,sizeof(a)),j=i=0,++pos /* skip ;/, */;
-		for (i=pos;i<l&&!isalpha(cmdin[i]);i++)  
+		for (i=pos;i<l&&!isalpha(cmdin[i]);i++)
   			a[j++]=cmdin[i];
-		if (i<l)  
+		if (i<l)
   			a[j++]=cmdin[i];
 		a[j]='\0',pos=i,stopflag=1;
 		
@@ -409,12 +409,12 @@ L2:
 					x=1,y=lastline;
 				else if (nullx&&del==';')
 					x=curline,y=lastline;
-				else if (del==0) {
-					y=x;
-					for (i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
-					op=cmdin[i];
-				}
 			}
+		}
+		if (del==0&&!op) {
+			y=x;
+			for (i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
+			op=cmdin[i];
 		}
 
 
