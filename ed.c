@@ -300,7 +300,7 @@ inline static void cmd(void)
 				memcpy(lastfile,(cmdin+2),(l-2));
 		goto exit;
 	}
-	/* [[x][,|;][y]]<cmd> */
+	/* [[x][,|;][y]]<cmd>[ ][param] */
 	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||
 		cmdin[0]==';'||isdigit(cmdin[0])) {
 
