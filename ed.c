@@ -436,7 +436,9 @@ L1:
 			if (isalpha(cmdin[i]))
 				break;
 		}
-		num1[j]='\0',op=num1[j-1],pos=i,stopflag=1;
+		num1[j]='\0',pos=i,stopflag=1;
+		if (isalpha(num1[j-1])||num1[j-1]=='=')
+			op=num1[j-1];
 		goto L1;
 L2:
 		/* processing */
@@ -448,18 +450,20 @@ L2:
 		}
 		y-=snum,y+=anum;
 		if (!(strlen(num1)-1)||!strlen(num1)) {
-			if (del==','||del==';')
-				y=x;
-			if (nullx&&del==',')
-				x=1,y=lastline;
-			else if (nullx&&del==';')
-				x=curline,y=lastline;
-			else if (del==0) {
-				y=x;
-				for (i=0;i<l;i++)
-					if (isalpha(cmdin[i])||cmdin[i]=='=')
-						break;
-				op=cmdin[i];
+			if (op) {
+				if (del==','||del==';')
+					y=x;
+				if (nullx&&del==',')
+					x=1,y=lastline;
+				else if (nullx&&del==';')
+					x=curline,y=lastline;
+				else if (del==0) {
+					y=x;
+					for (i=0;i<l;i++)
+						if (isalpha(cmdin[i])||cmdin[i]=='=')
+							break;
+					op=cmdin[i];
+				}
 			}
 		}
 
@@ -467,6 +471,15 @@ L2:
 		memset(num1,0,sizeof(num1));
 		for (i=0;i<l;i++) { if (isalpha(cmdin[i])&&(i+1)!=l) { stopflag=1; break; } }
 		for (i++,j=0;i<l&&stopflag;i++) param[j++]=cmdin[i];
+
+		/* only num */
+		if (!op) {
+			op='p';
+			if (!y)
+				y=x;
+			else
+				x=y;
+		}
 
 		/* get cmdcode */
 		switch(op) { 
@@ -482,7 +495,7 @@ L2:
 err:
 	err=1;
 exit:
-#if 0
+#if 1
 	printf("x=%ld, y=%ld, op=%c\n",x,y,op);
 	printf("%s\n",param);
 #endif
