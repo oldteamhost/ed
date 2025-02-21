@@ -1,4 +1,4 @@
-/*
+ /*
  * q
  * Q
  * f [file]
@@ -39,6 +39,7 @@ typedef unsigned int u32;
 #define N_CMD	7
 #define L_CMD	8
 #define EQ_CMD	9
+#define W_CMD	10
 
 /* main */
 char mainbuf[65535];
@@ -83,6 +84,52 @@ inline static void closetmp(void)
 	close(tmpfd);
 	unlink(template);
 	tmpfd=-1;
+}
+
+inline static u8 wcmd_exec(void)
+{
+	ssize_t r,i,cur,w,l,tot;
+	char buf[65535];
+	u8 flag;
+	int fd;
+
+	r=i=cur=w=l=tot=0;
+	flag = 0;
+
+	if (tmpfd<0)
+		return 0;
+	if (y>lastline||x>y)
+		return 0;
+	if ((fd=open(lastfile,O_WRONLY|O_CREAT|O_TRUNC, 0644))==-1)
+		return 0;
+	lseek(tmpfd, 0, SEEK_SET);
+	for (;(r=read(tmpfd, buf, sizeof(buf)))>0;) {
+		l=0;
+		for (i=0;i<r;i++) {
+			if (buf[i]!=0x0a)
+				continue;
+			buf[i]='\0';
+			cur++;
+			flag=(cur>=x)?1:flag;
+			if (flag) {
+				 if ((w=write(fd,buf+l,strlen(buf+l)))==-1) {
+					close(fd);
+					return 0;
+				}
+				u8 tmp[1]={'\n'};
+				write(fd,tmp,1);
+				tot+=w+1;
+			}
+			l=i+1;
+			if (cur==y)
+				goto exit;
+		}
+	}
+
+exit:
+	printf("%ld [%ld lines]\n",tot,cur);
+	close(fd);
+	return 1;
 }
 
 
@@ -153,6 +200,7 @@ inline static u8 pcmd_exec(u8 number, u8 list)
 					else {
 						for (j=0;j<strlen(buf+l);j++) {
 							switch (buf[j+l]) {
+								case '\\': twochar('\\','\\'); break;
 								case '\a': twochar('\\','a'); break;
 								case '\b': twochar('\\','b'); break;
 								case '\f': twochar('\\','f'); break;
@@ -241,6 +289,10 @@ inline static void exec(void)
 			break;
 		case EQ_CMD:
 			if (!eqcmd_exec())
+				goto err;
+			break;
+		case W_CMD:
+			if (!wcmd_exec())
 				goto err;
 			break;
 	}
@@ -417,13 +469,14 @@ L2:
 		for (i++,j=0;i<l&&stopflag;i++) param[j++]=cmdin[i];
 
 		/* get cmdcode */
-		switch(op) {	
-			case 'p': cmdcode=P_CMD; goto exit;	
-			case 'n': cmdcode=N_CMD; goto exit;	
+		switch(op) { 
+			case 'p': cmdcode=P_CMD; goto exit;
+			case 'n': cmdcode=N_CMD; goto exit;
 			case 'l': cmdcode=L_CMD; goto exit;
 			case '=': cmdcode=EQ_CMD; goto exit;
-		}	
-		goto err;	
+			case 'w': cmdcode=W_CMD; goto exit;
+		}
+		goto err;
 	}
 
 err:
