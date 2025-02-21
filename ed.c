@@ -69,10 +69,10 @@ inline static void cmd(void);
 inline static noreturn void quit(int code);
 
 inline static void qcmd_exec(void);
-inline static void ucmd_exec(void);
-inline static void fcmd_exec(void);
-inline static u8 ecmd_exec(void);
-inline static u8 pcmd_exec(u8 number, u8 list);
+inline static void undo(void);
+inline static void filename(void);
+inline static u8 edit(void);
+inline static u8 print(u8 number, u8 list);
 
 inline static void opentmp(void)
 {
@@ -85,7 +85,7 @@ inline static void closetmp(void)
 	tmpfd=-1;
 }
 
-inline static u8 wcmd_exec(void)
+inline static u8 writefile(void)
 {
 	ssize_t r,i,cur,w,l,tot;
 	char buf[65535];
@@ -132,7 +132,7 @@ exit:
 }
 
 
-inline static u8 ecmd_exec(void)
+inline static u8 edit(void)
 {
 	ssize_t r=0,tot=0,i=0;
 	char buf[1024];
@@ -160,7 +160,7 @@ inline static u8 ecmd_exec(void)
 	return 1;
 }
 
-inline static u8 eqcmd_exec(void)
+inline static u8 linenum(void)
 {
 	if (x>lastline||!x)
 		return 0;
@@ -168,7 +168,7 @@ inline static u8 eqcmd_exec(void)
 	return 1;
 }
 
-inline static u8 pcmd_exec(u8 number, u8 list)
+inline static u8 print(u8 number, u8 list)
 {
 	char buf[65535];
 	ssize_t i,r,l;
@@ -224,12 +224,12 @@ exit:
 	return 1;
 }
 
-inline static void fcmd_exec(void)
+inline static void filename(void)
 {
 	printf("%s\n",lastfile);
 }
 
-inline static void ucmd_exec(void)
+inline static void undo(void)
 {
 }
 
@@ -261,36 +261,36 @@ inline static void exec(void)
 			qcmd_exec();
 			break;
 		case U_CMD:
-			ucmd_exec();
+			undo();
 			break;
 		case _Q_CMD:
 			changeflag=0, qcmd_exec();
 			break;
 		case F_CMD:
-			fcmd_exec();
+			filename();
 			break;
 		case E_CMD:
-			if (!ecmd_exec())
+			if (!edit())
 				goto err;
 			break;
 		case P_CMD:
-			if (!pcmd_exec(0,0))
+			if (!print(0,0))
 				goto err;
 			break;
 		case N_CMD:
-			if (!pcmd_exec(1,0))
+			if (!print(1,0))
 				goto err;
 			break;
 		case L_CMD:
-			if (!pcmd_exec(0,1))
+			if (!print(0,1))
 				goto err;
 			break;
 		case EQ_CMD:
-			if (!eqcmd_exec())
+			if (!linenum())
 				goto err;
 			break;
 		case W_CMD:
-			if (!wcmd_exec())
+			if (!writefile())
 				goto err;
 			break;
 	}
