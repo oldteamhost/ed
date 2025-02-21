@@ -38,6 +38,7 @@ typedef unsigned int u32;
 #define P_CMD	6
 #define N_CMD	7
 #define L_CMD	8
+#define EQ_CMD	9
 
 /* main */
 char mainbuf[65535];
@@ -52,6 +53,7 @@ char lastfile[1024]={0}; /* efE */
 int cmdcode;
 size_t x,y; /* range */
 u8 err;
+char	param[2048];
 
 /* buffer */
 char template[]="/tmp/tempfileXXXXXX";
@@ -109,6 +111,14 @@ inline static u8 ecmd_exec(void)
 	close(o);
 	printf("%ld [%ld lines]\n", tot, lastline);
 	curline=lastline;
+	return 1;
+}
+
+inline static u8 eqcmd_exec(void)
+{
+	if (x>lastline)
+		return 0;
+	printf("%ld\n",x);
 	return 1;
 }
 
@@ -193,6 +203,7 @@ inline static void init(void)
 	cmdcode=-1;
 	err=0;
 	x=y=0;
+	memset(param,0,sizeof(param));
 }
 
 inline static void exec(void)
@@ -228,6 +239,10 @@ inline static void exec(void)
 			if (!pcmd_exec(0,1))
 				goto err;
 			break;
+		case EQ_CMD:
+			if (!eqcmd_exec())
+				goto err;
+			break;
 	}
 	return;
 err:
@@ -250,7 +265,7 @@ inline static void cmd(void)
 	u8	anumflag;
 	u8	snumflag;
 
-	del=stopflag=nullx=0;
+	del=stopflag=nullx=op=0;
 
 	memset(num1,0,sizeof(num1));
 	memset(num2,0,sizeof(num2));
@@ -390,17 +405,23 @@ L2:
 			else if (del==0) {
 				y=x;
 				for (i=0;i<l;i++)
-					if (isalpha(cmdin[i]))
+					if (isalpha(cmdin[i])||cmdin[i]=='=')
 						break;
 				op=cmdin[i];
 			}
 		}
+
+		/* param */
+		memset(num1,0,sizeof(num1));
+		for (i=0;i<l;i++) { if (isalpha(cmdin[i])&&(i+1)!=l) { stopflag=1; break; } }
+		for (i++,j=0;i<l&&stopflag;i++) param[j++]=cmdin[i];
 
 		/* get cmdcode */
 		switch(op) {	
 			case 'p': cmdcode=P_CMD; goto exit;	
 			case 'n': cmdcode=N_CMD; goto exit;	
 			case 'l': cmdcode=L_CMD; goto exit;
+			case '=': cmdcode=EQ_CMD; goto exit;
 		}	
 		goto err;	
 	}
@@ -408,6 +429,10 @@ L2:
 err:
 	err=1;
 exit:
+#if 0
+	printf("x=%ld, y=%ld, op=%c\n",x,y,op);
+	printf("%s\n",param);
+#endif
 	return;
 }
 
