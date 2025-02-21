@@ -412,7 +412,6 @@ L1:
 			nullx=1;
 		}
 
-
 		/* nxt arg */
 		memset(num1,0,sizeof(num1)),j=i=0,++pos /* skip ;/, */;
 		for (i=pos;i<l;i++) {
@@ -450,7 +449,6 @@ L2:
 				}
 			}
 		}
-
 
 		/* only num */
 		if (!op) {
