@@ -40,6 +40,7 @@ typedef unsigned int u32;
 #define L_CMD	8
 #define EQ_CMD	9
 #define W_CMD	10
+#define D_CMD	11
 
 char		mainbuf[65535];
 int		mode=CMDMODE;
@@ -117,6 +118,7 @@ inline static u8 writefile(void)
 
 exit:
 	printf("%ld [%ld lines]\n",tot,cur);
+	changeflag=0;
 	close(fd);
 	return 1;
 }
@@ -147,7 +149,65 @@ inline static u8 edit(void)
 	}
 	close(o);
 	printf("%ld [%ld lines]\n", tot, lastline);
-	curline=lastline;
+	return 1;
+}
+
+inline static u8 delete(void)
+{
+	char	tp[]="/tmp/mytmpfileXXXXXX";
+	int	fd;
+	char	buf[65535];
+	ssize_t	r,i,j,l;
+	u8	flag;
+
+	flag=0;
+	j=i=l=r=0;
+
+	puts("kekkekek");
+	if (tmpfd<0)
+		return 0;
+	if (y>lastline||x>lastline||x>y||!x||!y)
+		return 0;
+	if ((fd=mkstemp(tp))<0)
+		return 0;
+	lseek(tmpfd,0,SEEK_SET);
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		l=0;
+		for (i=0;i<r;i++) {
+			if (buf[i]!=0x0a)
+				continue;
+			buf[i]='\0';
+			j++;
+			flag=(j==x)?1:flag;
+			flag=(j>y)?0:flag;
+			if (!flag) {
+				if ((write(fd,buf+l,strlen(buf+l)))==-1) {
+					close(fd);
+					return 0;
+				}
+				u8 t[1]={0x0a};
+				write(fd,t,1);
+			}
+			l=i+1;
+		}
+	}
+
+	closetmp();
+	rename(tp,template); /* aee */
+	tmpfd=fd;
+
+	/* fix current and last linea */
+	changeflag=1;
+	curline=x;
+	curline=(x!=1&&y==lastline)?x-1:curline;
+	curline=(x==1)?1:curline;
+	if (lastline>y)
+		lastline-=(y-x+1);
+	else if (lastline>=x&&lastline<=y)
+		lastline=x-1;
+	lastline=(lastline<1)?0:lastline;
+	curline=(!lastline)?lastline:curline;	/* all file deleted */
+
 	return 1;
 }
 
@@ -276,6 +336,10 @@ inline static void exec(void)
 			break;
 		case W_CMD:
 			if (!writefile())
+				goto err;
+			break;
+		case D_CMD:
+			if (!delete())
 				goto err;
 			break;
 	}
@@ -433,6 +497,7 @@ L0:
 			case 'e': cmdcode=E_CMD; goto L4;
 			case 'E': cmdcode=_E_CMD; goto L4;
 			case 'f': cmdcode=F_CMD; goto L4;
+			case 'd': cmdcode=D_CMD; goto exit;
 		}
 		goto err;
 	}
@@ -447,7 +512,7 @@ L4:
 err:
 	err=1;
 exit:
-#if 1
+#if 0
 	printf("x=%ld, y=%ld, op=%c\n",x,y,op);
 	printf("%s\n",param);
 	printf("file=%s\n",lastfile);

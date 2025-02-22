@@ -1,6 +1,4 @@
 #include <stdio.h>
-
-int main(void)
-{
-  return 0;
-}
+ksjdf
+4343434
+343434
