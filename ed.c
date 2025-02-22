@@ -41,6 +41,7 @@ typedef unsigned int u32;
 #define EQ_CMD	9
 #define W_CMD	10
 #define D_CMD	11
+#define J_CMD	12
 
 char		mainbuf[65535];
 int		mode=CMDMODE;
@@ -150,6 +151,55 @@ inline static u8 edit(void)
 	close(o);
 	printf("%ld [%ld lines]\n", tot, lastline);
 	curline=lastline;
+	return 1;
+}
+
+inline static u8 join(void)
+{
+	char	tp[]="/tmp/forjoinXXXXXX";
+	int	fd;
+	char	buf[65535];
+	ssize_t	r,i,j,l;
+	u8	flag;
+	size_t	tot;
+
+	tot=0;
+	flag=0;
+	i=j=l=r=0;
+
+	if (tmpfd<0)
+		return 0;
+	if (y>lastline||x>lastline||x>y||!x||!y)
+		return 0;
+	if ((fd=mkstemp(tp))<0)
+		return 0;
+	lseek(tmpfd,0,SEEK_SET);
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		l=0;
+		for (i=0;i<r;i++) {
+			if (buf[i]!=0x0a)
+				continue;
+			buf[i]='\0';
+			j++;
+			flag=(j==x)?1:flag;
+			flag=(j+1>y)?0:flag;
+			if ((write(fd,buf+l,strlen(buf+l)))==-1) {
+				close(fd);
+				return 0;
+			}
+			if (!flag) {
+				u8 t[1]={0x0a};
+				write(fd,t,1);
+				tot++;
+			}
+			l=i+1;
+		}
+	}
+	closetmp();
+	rename(tp,template);
+	tmpfd=fd;
+	lastline=tot;
+	curline=x;
 	return 1;
 }
 
@@ -286,11 +336,11 @@ inline static void undo(void)
 {
 }
 
-inline static void quited(void)
+inline static u8 quited(void)
 {
 	if (changeflag) {
 		changeflag=0;
-		return;
+		return 0;
 	}
 	puts("goodbye");
 	quit(0);
@@ -303,7 +353,8 @@ inline static void exec(void)
 		goto err;
 	switch(cmdcode) {
 		case Q_CMD:
-			quited();
+			if (!quited())
+				goto err;
 			break;
 		case U_CMD:
 			undo();
@@ -341,6 +392,10 @@ inline static void exec(void)
 		case D_CMD:
 			if (!delete())
 				goto err;
+		case J_CMD:
+			if (!join())
+				goto err;
+			break;
 			break;
 	}
 	return;
@@ -498,6 +553,7 @@ L0:
 			case 'E': cmdcode=_E_CMD; goto L4;
 			case 'f': cmdcode=F_CMD; goto L4;
 			case 'd': cmdcode=D_CMD; goto exit;
+			case 'j': cmdcode=J_CMD; goto exit;
 		}
 		goto err;
 	}
@@ -524,6 +580,9 @@ exit:
 				break;
 			case '=':
 				x=lastline,y=x;
+				break;
+			case 'j':
+				x=curline,y=x+1;
 				break;
 		}
 	}
