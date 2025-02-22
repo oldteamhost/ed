@@ -31,47 +31,29 @@ typedef unsigned int u32;
 
 #define Q_CMD	0
 #define U_CMD	1
-#define _Q_CMD 2
+#define _Q_CMD	2
 #define E_CMD	3
 #define F_CMD	4
-#define _E_CMD 5
+#define _E_CMD	5
 #define P_CMD	6
 #define N_CMD	7
 #define L_CMD	8
 #define EQ_CMD	9
 #define W_CMD	10
 
-/* main */
-char mainbuf[65535];
-int mode=CMDMODE;
-u8 changeflag=0;
-size_t lastline=0;
-size_t curline=0;
-
-/* cmd */
-char cmdin[2048];
-char lastfile[1024]={0}; /* efE */
-int cmdcode;
-size_t x,y; /* range */
-u8 err;
-char	param[2048];
-
-/* buffer */
-int tmpfd=-1; /* ls -lt /tmp */
-char template[256];
-
-inline static void opentmp(void);
-inline static void closetmp(void);
-
-inline static void exec(void);
-inline static void commands(void);
-inline static noreturn void quit(int code);
-
-inline static void quited(void);
-inline static void undo(void);
-inline static void filename(void);
-inline static u8 edit(void);
-inline static u8 print(u8 number, u8 list);
+char		mainbuf[65535];
+int		mode=CMDMODE;
+u8		changeflag=0;
+size_t		lastline=0;
+size_t		curline=0;
+char		cmdin[2048];
+char		lastfile[1024]={0};
+int		cmdcode;
+size_t		x,y;
+u8		err;
+char		param[2048];
+int		tmpfd=-1;
+char		template[256];
 
 inline static void opentmp(void)
 {
@@ -86,12 +68,19 @@ inline static void closetmp(void)
 	tmpfd=-1;
 }
 
+inline static noreturn void quit(int code)
+{
+	if (tmpfd>=0)
+		closetmp();
+	exit(0);
+}
+
 inline static u8 writefile(void)
 {
-	ssize_t r,i,cur,w,l,tot;
-	char buf[65535];
-	u8 flag;
-	int fd;
+	ssize_t	r,i,cur,w,l,tot;
+	char	buf[65535];
+	u8	flag;
+	int	fd;
 
 	r=i=cur=w=l=tot=0;
 	flag = 0;
@@ -135,9 +124,9 @@ exit:
 
 inline static u8 edit(void)
 {
-	ssize_t r=0,tot=0,i=0;
-	char buf[1024];
-	int o=0;
+	ssize_t	r=0,tot=0,i=0;
+	char	buf[1024];
+	int	o;
 
 	if (changeflag) {
 		changeflag=0;
@@ -149,8 +138,7 @@ inline static u8 edit(void)
 	opentmp();
 	if (tmpfd==-1)
 		return 0;
-	o=open(lastfile,O_RDONLY);
-	if (o<0)
+	if ((o=open(lastfile,O_RDONLY))<0)
 		return 0;
 	for (;(r=read(o, buf, sizeof(buf)))>0;) {
 		write(tmpfd, buf, r), tot+=r;
@@ -173,10 +161,12 @@ inline static u8 linenum(void)
 
 inline static u8 print(u8 number, u8 list)
 {
-	char buf[65535];
-	ssize_t i,r,l;
-	size_t cur,j;
-	u8 flag=0;
+	char	buf[65535];
+	ssize_t	i,r,l;
+	size_t	cur,j;
+	u8	flag;
+
+	flag=0;
 	cur=0;
 	l=0;
 	j=0;
@@ -465,12 +455,6 @@ exit:
 	return;
 }
 
-inline static noreturn void quit(int code)
-{
-	if (tmpfd>=0)
-		closetmp();
-	exit(0);
-}
 
 int main(int argc, char **argv)
 {
