@@ -49,7 +49,7 @@ size_t lastline=0;
 size_t curline=0;
 
 /* cmd */
-char cmdin[1024];
+char cmdin[2048];
 char lastfile[1024]={0}; /* efE */
 int cmdcode;
 size_t x,y; /* range */
@@ -57,15 +57,14 @@ u8 err;
 char	param[2048];
 
 /* buffer */
-char template[]="/tmp/tempfileXXXXXX";
 int tmpfd=-1; /* ls -lt /tmp */
+char template[256];
 
 inline static void opentmp(void);
 inline static void closetmp(void);
 
-inline static void init(void);
 inline static void exec(void);
-inline static void cmd(void);
+inline static void commands(void);
 inline static noreturn void quit(int code);
 
 inline static void quited(void);
@@ -76,8 +75,10 @@ inline static u8 print(u8 number, u8 list);
 
 inline static void opentmp(void)
 {
+	snprintf(template,sizeof(template),"/tmp/tempfileXXXXXX");
 	tmpfd=mkstemp(template);
 }
+
 inline static void closetmp(void)
 {
 	close(tmpfd);
@@ -146,6 +147,8 @@ inline static u8 edit(void)
 	if (tmpfd>=0)
 		closetmp();
 	opentmp();
+	if (tmpfd==-1)
+		return 0;
 	o=open(lastfile,O_RDONLY);
 	if (o<0)
 		return 0;
@@ -243,14 +246,6 @@ inline static void quited(void)
 	quit(0);
 }
 
-inline static void init(void)
-{
-	memset(cmdin,0,sizeof(cmdin));
-	cmdcode=-1;
-	err=0;
-	x=y=0;
-	memset(param,0,sizeof(param));
-}
 
 inline static void exec(void)
 {
@@ -300,7 +295,7 @@ err:
 }
 
 
-inline static void cmd(void)
+inline static void commands(void)
 {
 	char	a[2048];
 	char	b[2048];
@@ -313,11 +308,15 @@ inline static void cmd(void)
 	size_t	snum;
 	size_t	pos;
 
-	del=stopflag=nullx=op=0;
+	memset(param,0,sizeof(param));
+	cmdcode=-1;
+	err=0;
+	x=y=0;
 
 	memset(a,0,sizeof(a));
 	memset(b,0,sizeof(b));
 	l=strlen(cmdin), cmdin[--l]='\0';
+	del=stopflag=nullx=op=0;
 
 	/* null command */
 	if (!l) {
@@ -461,6 +460,7 @@ exit:
 #if 1
 	printf("x=%ld, y=%ld, op=%c\n",x,y,op);
 	printf("%s\n",param);
+	printf("file=%s\n",lastfile);
 #endif
 	return;
 }
@@ -476,10 +476,11 @@ int main(int argc, char **argv)
 {
 	signal(SIGINT, quit);
 	for (;;) {
-		init();
-		if (fgets(cmdin,sizeof(cmdin),stdin))
-			cmd();
-		exec(), fflush(stdout);
+		memset(cmdin,0,sizeof(cmdin));
+		fgets(cmdin,sizeof(cmdin),stdin);
+		commands();
+		exec();
+		fflush(stdout);
 	}
 	return 0;
 }
