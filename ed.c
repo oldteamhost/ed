@@ -149,6 +149,7 @@ inline static u8 edit(void)
 	}
 	close(o);
 	printf("%ld [%ld lines]\n", tot, lastline);
+	curline=lastline;
 	return 1;
 }
 
@@ -163,7 +164,6 @@ inline static u8 delete(void)
 	flag=0;
 	j=i=l=r=0;
 
-	puts("kekkekek");
 	if (tmpfd<0)
 		return 0;
 	if (y>lastline||x>lastline||x>y||!x||!y)
@@ -512,6 +512,21 @@ L4:
 err:
 	err=1;
 exit:
+	/* default x,y */
+	if (!x&&!y) {
+		switch (op) {
+			case 'p': case 'd': case 'n':
+			case 'l':
+				x=curline,y=x;
+				break;
+			case 'w':
+				x=1,y=lastline;
+				break;
+			case '=':
+				x=lastline,y=x;
+				break;
+		}
+	}
 #if 0
 	printf("x=%ld, y=%ld, op=%c\n",x,y,op);
 	printf("%s\n",param);
