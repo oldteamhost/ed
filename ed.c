@@ -60,6 +60,8 @@ int		undofd=-1;
 char		undotp[256];
 size_t		undolast=0;
 bool		redo=0;
+int		save;
+size_t		savel;
 
 inline static void opentmp(void)
 {
@@ -369,8 +371,6 @@ inline static void filename(void)
 	printf("%s\n",lastfile);
 }
 
-int save;
-size_t savel;
 inline static void undo(void)
 {
 	if (undofd<0)
