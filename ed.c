@@ -56,6 +56,10 @@ u8		err;
 char		param[2048];
 int		tmpfd=-1;
 char		template[256];
+int		undofd=-1;
+char		undotp[256];
+size_t		undolast=0;
+bool		redo=0;
 
 inline static void opentmp(void)
 {
@@ -70,10 +74,40 @@ inline static void closetmp(void)
 	tmpfd=-1;
 }
 
+inline static void savefile(void)
+{
+	char	buf[65535];
+	ssize_t	r;
+
+	if (undofd>=0) {
+		close(undofd);
+		unlink(undotp);
+	}
+	snprintf(undotp, sizeof(undotp), "/tmp/undoXXXXXX");
+	if ((undofd=mkstemp(undotp))<0)
+		return;
+	redo=0;
+	undolast=lastline;
+	lseek(tmpfd,0,SEEK_SET);
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		if (write(undofd,buf,r)!=r) {
+			close(undofd);
+			unlink(undotp);
+			undofd=-1;
+			return;
+		}
+	}
+}
+
+
 inline static noreturn void quit(int code)
 {
 	if (tmpfd>=0)
 		closetmp();
+	if (undofd>=0) {
+		close(undofd);
+		unlink(undotp);
+	}
 	exit(0);
 }
 
@@ -171,6 +205,7 @@ inline static u8 join(void)
 		return 0;
 	if (y>lastline||x>lastline||x>y||!x||!y)
 		return 0;
+	savefile();
 	if ((fd=mkstemp(tp))<0)
 		return 0;
 	lseek(tmpfd,0,SEEK_SET);
@@ -200,6 +235,7 @@ inline static u8 join(void)
 	tmpfd=fd;
 	lastline=tot;
 	curline=x;
+	changeflag=1;
 	return 1;
 }
 
@@ -218,6 +254,7 @@ inline static u8 delete(void)
 		return 0;
 	if (y>lastline||x>lastline||x>y||!x||!y)
 		return 0;
+	savefile();
 	if ((fd=mkstemp(tp))<0)
 		return 0;
 	lseek(tmpfd,0,SEEK_SET);
@@ -332,9 +369,26 @@ inline static void filename(void)
 	printf("%s\n",lastfile);
 }
 
+int save;
+size_t savel;
 inline static void undo(void)
 {
+	if (undofd<0)
+		return;
+	if (redo) {
+		tmpfd=dup(save);
+		close(save);
+		lastline=savel;
+		redo=0;
+		return;
+	}
+	save=tmpfd;
+	savel=lastline;
+	tmpfd=dup(undofd);
+	lastline=undolast;
+	redo=1;
 }
+
 
 inline static u8 quited(void)
 {
@@ -392,10 +446,10 @@ inline static void exec(void)
 		case D_CMD:
 			if (!delete())
 				goto err;
+			break;
 		case J_CMD:
 			if (!join())
 				goto err;
-			break;
 			break;
 	}
 	return;
