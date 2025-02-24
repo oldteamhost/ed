@@ -1,3 +1,5 @@
+
+
 commands:
 		e [file]		edit
 		E [file]		edit non check flag
@@ -12,6 +14,16 @@ commands:
 		(.,.+1)j		join
 		(1,$)w [file]		write file
 		($)=			get number
+
+
+short addr:
+		,			1,$
+		,addr			1,addr
+		addr,			addr,addr
+		;			.,$
+		;addr			.;addr
+		addr;			addr;addr
+
 
 syntax:
 	<command> ::= <e> | <E> | <q> | <Q> | <f> | <u>
