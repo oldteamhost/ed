@@ -42,6 +42,7 @@ typedef unsigned int u32;
 #define W_CMD	10
 #define D_CMD	11
 #define J_CMD	12
+#define K_CMD	13
 
 char		mainbuf[65535];
 int		mode=CMDMODE;
@@ -62,6 +63,7 @@ size_t		undolast=0;
 bool		redo=0;
 int		save;
 size_t		savel;
+size_t		marks[26]={0};
 
 inline static void opentmp(void)
 {
@@ -74,6 +76,14 @@ inline static void closetmp(void)
 	close(tmpfd);
 	unlink(template);
 	tmpfd=-1;
+}
+
+inline static void mark(void)
+{
+	if (isalpha(param[0])) {
+		param[0]=tolower(param[0]);
+		marks[param[0]-'a']=x;
+	}
 }
 
 inline static void savefile(void)
@@ -451,6 +461,9 @@ inline static void exec(void)
 			if (!join())
 				goto err;
 			break;
+		case K_CMD:
+			mark();
+			break;
 	}
 	return;
 err:
@@ -485,6 +498,15 @@ inline static void commands(void)
 	if (!l) {
 		x=curline+1;
 		y=x;
+		op='p';
+		cmdcode=P_CMD;
+		goto exit;
+	}
+	if (cmdin[0]=='\'') {
+		if (!isalpha(cmdin[1]))
+			goto err;
+		curline=marks[tolower(cmdin[1])-'a'];
+		x=y=curline;
 		op='p';
 		cmdcode=P_CMD;
 		goto exit;
@@ -607,6 +629,7 @@ L0:
 			case 'f': cmdcode=F_CMD; goto L4;
 			case 'd': cmdcode=D_CMD; goto exit;
 			case 'j': cmdcode=J_CMD; goto exit;
+			case 'k': cmdcode=K_CMD; goto exit;
 		}
 		goto err;
 	}
@@ -626,6 +649,7 @@ exit:
 		switch (op) {
 			case 'p': case 'd': case 'n':
 			case 'l':
+			case 'k':
 				x=curline,y=x;
 				break;
 			case 'w':
