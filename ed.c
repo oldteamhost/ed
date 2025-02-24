@@ -493,10 +493,10 @@ inline static void commands(void)
 	/* [[x][,|;][y]]<cmd>[ ][param] */
 	if (cmdin[0]=='$'||cmdin[0]=='.'||cmdin[0]==','||
 		cmdin[0]==';'||isdigit(cmdin[0])||
-		isalpha(cmdin[0])) {
+		isalpha(cmdin[0])||cmdin[0]=='=') {
 
 		/* no args */
-		if (isalpha(cmdin[0])) {
+		if (isalpha(cmdin[0])||cmdin[0]=='=') {
 			op=cmdin[0];
 			goto L0;
 		}
@@ -549,10 +549,6 @@ L1:
 		if (i<l)
   			a[j++]=cmdin[i];
 		a[j]='\0',pos=i,stopflag=1;
-		
-		/* get op */
-		if (isalpha(a[j-1])||a[j-1]=='=')
-			op=a[j-1];
 		goto L1; /* goto exp parse */
 L2:
 		/* processing */
@@ -563,6 +559,11 @@ L2:
 			default: y=atoll(b); break;
 		}
 		y-=snum,y+=anum;
+
+		/* get op */
+		for (i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
+		op=cmdin[i];
+
 		if (!(strlen(a)-1)||!strlen(a)) {
 			if (op) {
 				if (del==','||del==';')
@@ -571,11 +572,9 @@ L2:
 					x=1,y=lastline;
 				else if (nullx&&del==';')
 					x=curline,y=lastline;
+				else if (!del)
+					y=x;
 			}
-		}
-		if (del==0&&!op) {
-			for (y=x,i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
-			op=cmdin[i];
 		}
 
 		/* only num = p */
