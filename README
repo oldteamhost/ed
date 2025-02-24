@@ -12,6 +12,7 @@ commands:
 		(.,.)n			print with numbers
 		(.,.)d			delete
 		(.,.+1)j		join
+		(.)kx			set mark
 		(1,$)w [file]		write file
 		($)=			get number
 
@@ -28,20 +29,21 @@ short addr:
 syntax:
 	<command> ::= <e> | <E> | <q> | <Q> | <f> | <u>
 		| <p> | <n> | <d> | <j> | <w> | <=> | <l>
-		| <null>
+		| <null> | <k>
 	<e> ::= "e" | "e" " " <param>
 	<E> ::= "E" | "E" " " <param>
 	<q> ::= "q"
 	<Q> ::= "Q"
 	<f> ::= "f" | "f" " " <param>
 	<u> ::= "u"
-	<p> ::= "p" | <range> "p" | <arg>
+	<p> ::= "p" | <range> "p" | <arg> | "'" <letter>
 	<n> ::= "n" | <range> "n"
 	<d> ::= "d" | <range> "d"
 	<j> ::= "j" | <range> "j"
 	<w> ::= "w" | <range> "w" | <range> "w" <param> | "w" <param>
 	<=> ::= "=" | <arg> "="
 	<l> ::= "l" | <range> "l"
+	<k> ::= "k" <letter> | <arg> "k" <letter>
 	<null> ::= ""
 	<range> ::= <del>
 		| <arg> <del>
@@ -56,13 +58,14 @@ syntax:
 	<digit> ::=  "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 	<spec> ::= "$" | "."
 	<del> ::= "," | ";"
-	<param> ::= <letter> <param> | <letter>
+	<param> ::= <alpha> <param> | <alpha>
+	<alpha> ::= <letter> | <Letter>
 	<letter> ::= "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j" 
 		| "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t" 
-		| "u" | "v" | "w" | "x" | "y" | "z" | "A" | "B" | "C" | "D" 
-		| "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" 
-		| "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" 
-		| "Y" | "Z"
+		| "u" | "v" | "w" | "x" | "y" | "z" 
+	<Letter> ::= | "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" 
+		| "J" | "K" | "L" | "M" | "N"  | "O" | "P" | "Q" | "R" | "S" 
+		| "T" | "U" | "V" | "W" | "X" | "Y" | "Z"
 
 	exampla:
 		,2n	1,$-1-1-1+10-1-1j	,w kek.c	4	$-1	;.p	q	,n	$,$p	$,p
