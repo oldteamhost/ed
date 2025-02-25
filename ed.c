@@ -149,7 +149,7 @@ inline static u8 writefile(void)
 			cur++;
 			flag=(cur>=x)?1:flag;
 			if (flag) {
-				 if ((w=write(fd,buf+l,strlen(buf+l)))==-1) {
+				if ((w=write(fd,buf+l,strlen(buf+l)))==-1) {
 					close(fd);
 					return 0;
 				}
@@ -532,7 +532,7 @@ L1:
 			if (a[i]=='-'||a[i]=='+') {
 				size_t *c=(a[i]=='-')?&snum:&anum;
 				ssize_t n=1;
-				for (++i;i<strlen(a)&&(a[i]=='+'||a[i]=='-');i++)
+				for (++i;i<strlen(a)&&(a[i]=='+'||a[i]=='-')&&!isdigit(a[i+1]);i++)
 					n+=(a[i]==a[i-1])?1:-1;
 				if (i<strlen(a)&&isdigit(a[i])) {
 					*c+=atoll(a+i);
@@ -540,7 +540,7 @@ L1:
 					i=j-1;
 				}
 				else
-					*c+=n,i++;
+					*c+=n,i--;
 			}
 			else
 				b[m++]=a[i];
@@ -578,6 +578,7 @@ L1:
 		a[j]='\0',pos=i,stopflag=1;
 		goto L1; /* goto exp parse */
 L2:
+
 		/* processing */
 		switch (b[0]) {
 			case '.': y=curline; break;
@@ -586,7 +587,6 @@ L2:
 			default: y=atoll(b); break;
 		}
 		y-=snum,y+=anum;
-
 		/* get op */
 		for (i=0;i<l&&!isalpha(cmdin[i])&&cmdin[i]!='=';i++);
 		op=cmdin[i];
