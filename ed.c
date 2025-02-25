@@ -530,12 +530,17 @@ L1:
 		/* expression parsing 100-1-1-4+4+43 */
 		for (m=anum=snum=j=i=0;i<strlen(a);i++) {
 			if (a[i]=='-'||a[i]=='+') {
-				for (++i,j=i;j<strlen(a)&&(a[j]!='+'&&a[j]!='-');j++);
-				if (a[i-1]=='-')
-					snum+=atoll(a+i);
+				size_t *c=(a[i]=='-')?&snum:&anum;
+				ssize_t n=1;
+				for (++i;i<strlen(a)&&(a[i]=='+'||a[i]=='-');i++)
+					n+=(a[i]==a[i-1])?1:-1;
+				if (i<strlen(a)&&isdigit(a[i])) {
+					*c+=atoll(a+i);
+					for (j=i;i<strlen(a)&&isdigit(a[j]);j++);
+					i=j-1;
+				}
 				else
-					anum+=atoll(a+i);
-				i=j-1;
+					*c+=n,i++;
 			}
 			else
 				b[m++]=a[i];
