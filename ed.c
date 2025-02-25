@@ -22,27 +22,27 @@
 #define INPUTMODE 1
 #define CMDMODE 0
 
-#define twochar(c1,c2) \
-	putchar(c1), putchar(c2)
+#define twochar(c1,c2) putchar(c1), putchar(c2)
 
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
+typedef unsigned char 	u8;
+typedef unsigned short 	u16;
+typedef unsigned int 	u32;
 
-#define Q_CMD	0
-#define U_CMD	1
-#define _Q_CMD	2
-#define E_CMD	3
-#define F_CMD	4
-#define _E_CMD	5
-#define P_CMD	6
-#define N_CMD	7
-#define L_CMD	8
-#define EQ_CMD	9
-#define W_CMD	10
-#define D_CMD	11
-#define J_CMD	12
-#define K_CMD	13
+#define Q_CMD		0
+#define U_CMD		1
+#define _Q_CMD		2
+#define E_CMD		3
+#define F_CMD		4
+#define _E_CMD		5
+#define P_CMD		6
+#define N_CMD		7
+#define L_CMD		8
+#define EQ_CMD		9
+#define W_CMD		10
+#define D_CMD		11
+#define J_CMD		12
+#define K_CMD		13
+#define R_CMD		14
 
 char		mainbuf[65535];
 int		mode=CMDMODE;
@@ -200,6 +200,96 @@ inline static u8 edit(void)
 	return 1;
 }
 
+inline static u8 readfile(void)
+{
+	ssize_t	r,i,j,o,l,tot,k;
+	char	buf[65535], tmp[65535];
+	int	fd,fd1;
+	u8	flag;
+	char	tp[]="/tmp/forreadXXXXXX";
+
+	flag=0;
+	r=i=j=l=o=tot=k=0;
+
+	if (x>lastline||!x)
+		return 0;
+	if (tmpfd<0)
+		return 0;
+	savefile();
+
+	if ((fd=open(param+1,O_RDONLY))==-1)
+		return 0;
+	if ((fd1=mkstemp(tp))<0)
+		return 0;
+	lseek(tmpfd,0,SEEK_SET);
+	if (x==lastline)
+		goto postlast;
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		k=0;
+		for (i=0;i<r;i++) {
+			if (buf[i]!=0x0a)
+				continue;
+			buf[i]='\0',j++;
+			flag=(j==(x+1))?1:flag;
+
+			/* write file reading */
+			if (flag) {
+				for (;(o=read(fd,tmp,sizeof(tmp)))>0;) {
+					for (l=0;l<o;l++) if (tmp[l]==0x0a) tot++;
+					if ((write(fd1,tmp,o))==-1) {
+						close(fd);
+						close(fd1);
+						unlink(tp);
+						return 0;
+					}
+				}
+				flag=0;
+			}
+			/* write current file */
+			if (write(fd1,buf+k,strlen(buf+k))==-1) {
+				close(fd);
+				close(fd1);
+				unlink(tp);
+				return 0;
+			}
+			u8 t[1]={0x0a};
+			write(fd1,t,1);
+			k=i+1;
+
+		}
+	}
+	goto exit;
+
+/* its crap */
+postlast:
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		if ((write(fd1,buf,r))==-1) {
+			close(fd);
+			close(fd1);
+			unlink(tp);
+			return 0;
+		}
+	}
+	for (;(o=read(fd,tmp,sizeof(tmp)))>0;) {
+		for (l=0;l<o;l++) if (tmp[l]==0x0a) tot++;
+		if ((write(fd1,tmp,o))==-1) {
+			close(fd);
+			close(fd1);
+			unlink(tp);
+			return 0;
+		}
+	}
+	
+exit:
+	close(fd);
+	closetmp();
+	rename(tp,template);
+	tmpfd=fd1;
+	lastline+=tot;
+	curline=x+tot;	/* post write */
+	return 1;
+}
+
 inline static u8 join(void)
 {
 	char	tp[]="/tmp/forjoinXXXXXX";
@@ -226,8 +316,7 @@ inline static u8 join(void)
 		for (i=0;i<r;i++) {
 			if (buf[i]!=0x0a)
 				continue;
-			buf[i]='\0';
-			j++;
+			buf[i]='\0',j++;
 			flag=(j==x)?1:flag;
 			flag=(j+1>y)?0:flag;
 			if ((write(fd,buf+l,strlen(buf+l)))==-1) {
@@ -275,8 +364,7 @@ inline static u8 delete(void)
 		for (i=0;i<r;i++) {
 			if (buf[i]!=0x0a)
 				continue;
-			buf[i]='\0';
-			j++;
+			buf[i]='\0',j++;
 			flag=(j==x)?1:flag;
 			flag=(j>y)?0:flag;
 			if (!flag) {
@@ -416,54 +504,20 @@ inline static void exec(void)
 	if (err)
 		goto err;
 	switch(cmdcode) {
-		case Q_CMD:
-			if (!quited())
-				goto err;
-			break;
-		case U_CMD:
-			undo();
-			break;
-		case _Q_CMD:
-			changeflag=0, quited();
-			break;
-		case F_CMD:
-			filename();
-			break;
-		case E_CMD:
-			if (!edit())
-				goto err;
-			break;
-		case P_CMD:
-			if (!print(0,0))
-				goto err;
-			break;
-		case N_CMD:
-			if (!print(1,0))
-				goto err;
-			break;
-		case L_CMD:
-			if (!print(0,1))
-				goto err;
-			break;
-		case EQ_CMD:
-			if (!linenum())
-				goto err;
-			break;
-		case W_CMD:
-			if (!writefile())
-				goto err;
-			break;
-		case D_CMD:
-			if (!delete())
-				goto err;
-			break;
-		case J_CMD:
-			if (!join())
-				goto err;
-			break;
-		case K_CMD:
-			mark();
-			break;
+		case Q_CMD: if (!quited()) goto err; break;
+		case U_CMD: undo(); break;
+		case _Q_CMD: changeflag=0, quited(); break;
+		case F_CMD: filename(); break;
+		case E_CMD: if (!edit()) goto err; break;
+		case P_CMD: if (!print(0,0)) goto err; break;
+		case N_CMD: if (!print(1,0)) goto err; break;
+		case L_CMD: if (!print(0,1)) goto err; break;
+		case EQ_CMD: if (!linenum()) goto err; break;
+		case W_CMD: if (!writefile()) goto err; break;
+		case D_CMD: if (!delete()) goto err; break;
+		case J_CMD: if (!join()) goto err; break;
+		case K_CMD: mark(); break;
+		case R_CMD: if (!readfile()) goto err; break;
 	}
 	return;
 err:
@@ -635,6 +689,7 @@ L0:
 			case 'd': cmdcode=D_CMD; goto exit;
 			case 'j': cmdcode=J_CMD; goto exit;
 			case 'k': cmdcode=K_CMD; goto exit;
+			case 'r': cmdcode=R_CMD; goto exit;
 		}
 		goto err;
 	}
@@ -653,14 +708,13 @@ exit:
 	if (!x&&!y) {
 		switch (op) {
 			case 'p': case 'd': case 'n':
-			case 'l':
-			case 'k':
+			case 'l': case 'k':
 				x=curline,y=x;
 				break;
 			case 'w':
 				x=1,y=lastline;
 				break;
-			case '=':
+			case 'r': case '=':
 				x=lastline,y=x;
 				break;
 			case 'j':

@@ -14,6 +14,7 @@ commands:
 		(.,.+1)j		join
 		(.)kx			set mark
 		(1,$)w [file]		write file
+		($)r [file]		read file
 		($)=			get number
 
 
@@ -41,6 +42,7 @@ syntax:
 	<d> ::= "d" | <range> "d"
 	<j> ::= "j" | <range> "j"
 	<w> ::= "w" | <range> "w" | <range> "w" <param> | "w" <param>
+	<r> ::= "r" | <arg> "r" | <arg> "r" <param> | "r" <param>
 	<=> ::= "=" | <arg> "="
 	<l> ::= "l" | <range> "l"
 	<k> ::= "k" <letter> | <arg> "k" <letter>
