@@ -13,6 +13,8 @@ commands:
 		(.,.)d			delete
 		(.,.+1)j		join
 		(.)kx			set mark
+		(.,.)maddr     		move
+		(.,.)taddr     		copy (transfer)
 		(1,$)w [file]		write file
 		($)r [file]		read file
 		($)=			get number
@@ -30,7 +32,7 @@ short addr:
 syntax:
 	<command> ::= <e> | <E> | <q> | <Q> | <f> | <u>
 		| <p> | <n> | <d> | <j> | <w> | <=> | <l>
-		| <null> | <k>
+		| <null> | <k> | <m> | <t>
 	<e> ::= "e" | "e" " " <param>
 	<E> ::= "E" | "E" " " <param>
 	<q> ::= "q"
@@ -41,8 +43,10 @@ syntax:
 	<n> ::= "n" | <range> "n"
 	<d> ::= "d" | <range> "d"
 	<j> ::= "j" | <range> "j"
-	<w> ::= "w" | <range> "w" | <range> "w" <param> | "w" <param>
-	<r> ::= "r" | <arg> "r" | <arg> "r" <param> | "r" <param>
+	<t> ::= "t" <num> | <range> "t" <num>
+	<m> ::= "m" <num> | <range> "m" <num>
+	<w> ::= "w" | <range> "w" | <range> "w" " " <param> | "w" " " <param>
+	<r> ::= "r" | <arg> "r" | <arg> "r" " " <param> | "r" " " <param>
 	<=> ::= "=" | <arg> "="
 	<l> ::= "l" | <range> "l"
 	<k> ::= "k" <letter> | <arg> "k" <letter>

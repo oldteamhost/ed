@@ -1,14 +1,4 @@
- /*
- * q
- * Q
- * f [file]
- * e [file]
- * E [file]
- * (.,.)p
- * (.,.)n
- * u
- */
-
+#include <stddef.h>
 #include <stdio.h>
 #include <stdnoreturn.h>
 #include <ctype.h>
@@ -43,6 +33,8 @@ typedef unsigned int 	u32;
 #define J_CMD		12
 #define K_CMD		13
 #define R_CMD		14
+#define M_CMD		15
+#define T_CMD		16
 
 char		mainbuf[65535];
 int		mode=CMDMODE;
@@ -217,7 +209,7 @@ inline static u8 readfile(void)
 		return 0;
 	savefile();
 
-	if ((fd=open(param+1,O_RDONLY))==-1)
+	if ((fd=open(lastfile,O_RDONLY))==-1)
 		return 0;
 	if ((fd1=mkstemp(tp))<0)
 		return 0;
@@ -290,6 +282,140 @@ exit:
 	return 1;
 }
 
+inline static u8 transfer(bool s)
+{
+	char	tp[]="/tmp/mytmpfileXXXXXX";
+	int	fd;
+	char	buf[65535];
+	ssize_t	r,i,j,l;
+	u8	flag;
+	size_t	post;
+
+	flag=0;
+	j=i=l=r=post=0;
+
+	if (tmpfd<0)
+		return 0;
+	if (y>lastline||x>lastline||x>y||!x||!y)
+		return 0;
+	post=atoll(param);
+	if (post>lastline)
+		return 0;
+
+	if (s)
+		savefile();
+	if ((fd=mkstemp(tp))<0)
+		return 0;
+	lseek(tmpfd,0,SEEK_SET);
+
+	/* get lines */
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		l=0;
+		for (i=0;i<r;i++) {
+			if (buf[i]!=0x0a)
+				continue;
+			buf[i]='\0',j++;
+			flag=(j==x)?1:flag;
+			flag=(j>y)?0:flag;
+			if (flag) {
+				if ((write(fd,buf+l,strlen(buf+l)))==-1) {
+					close(fd);
+					return 0;
+				}
+				u8 t[1]={0x0a};
+				write(fd,t,1);
+			}
+			l=i+1;
+		}
+	}
+
+	memset(buf, 0, sizeof(buf));
+	snprintf(buf,sizeof(buf),"%s",lastfile);
+
+	/* write */
+	snprintf(lastfile,sizeof(lastfile),"%s",tp);
+	i=x,j=y;
+	x=y=post;
+
+	readfile();
+
+	snprintf(lastfile,sizeof(lastfile),"%s",buf);
+	x=i,y=j;
+
+	close(fd);
+	unlink(tp);
+
+	return 1;
+}
+
+inline static u8 delete(bool s)
+{
+	char	tp[]="/tmp/mytmpfileXXXXXX";
+	int	fd;
+	char	buf[65535];
+	ssize_t	r,i,j,l;
+	u8	flag;
+
+	flag=0;
+	j=i=l=r=0;
+
+	if (tmpfd<0)
+		return 0;
+	if (y>lastline||x>lastline||x>y||!x||!y)
+		return 0;
+	if (s)
+		savefile();
+	if ((fd=mkstemp(tp))<0)
+		return 0;
+	lseek(tmpfd,0,SEEK_SET);
+	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
+		l=0;
+		for (i=0;i<r;i++) {
+			if (buf[i]!=0x0a)
+				continue;
+			buf[i]='\0',j++;
+			flag=(j==x)?1:flag;
+			flag=(j>y)?0:flag;
+			if (!flag) {
+				if ((write(fd,buf+l,strlen(buf+l)))==-1) {
+					close(fd);
+					return 0;
+				}
+				u8 t[1]={0x0a};
+				write(fd,t,1);
+			}
+			l=i+1;
+		}
+	}
+
+	closetmp();
+	rename(tp,template); /* aee */
+	tmpfd=fd;
+
+	/* fix current and last linea */
+	changeflag=1;
+	curline=x;
+	curline=(x!=1&&y==lastline)?x-1:curline;
+	curline=(x==1)?1:curline;
+	if (lastline>y)
+		lastline-=(y-x+1);
+	else if (lastline>=x&&lastline<=y)
+		lastline=x-1;
+	lastline=(lastline<1)?0:lastline;
+	curline=(!lastline)?lastline:curline;	/* all file deleted */
+
+	return 1;
+}
+
+inline static u8 move(void)
+{
+	/* its work */
+	savefile();
+	transfer(0);
+	delete(0);
+	return 1;
+}
+
 inline static u8 join(void)
 {
 	char	tp[]="/tmp/forjoinXXXXXX";
@@ -337,64 +463,6 @@ inline static u8 join(void)
 	lastline=tot;
 	curline=x;
 	changeflag=1;
-	return 1;
-}
-
-inline static u8 delete(void)
-{
-	char	tp[]="/tmp/mytmpfileXXXXXX";
-	int	fd;
-	char	buf[65535];
-	ssize_t	r,i,j,l;
-	u8	flag;
-
-	flag=0;
-	j=i=l=r=0;
-
-	if (tmpfd<0)
-		return 0;
-	if (y>lastline||x>lastline||x>y||!x||!y)
-		return 0;
-	savefile();
-	if ((fd=mkstemp(tp))<0)
-		return 0;
-	lseek(tmpfd,0,SEEK_SET);
-	for (;(r=read(tmpfd,buf,sizeof(buf)))>0;) {
-		l=0;
-		for (i=0;i<r;i++) {
-			if (buf[i]!=0x0a)
-				continue;
-			buf[i]='\0',j++;
-			flag=(j==x)?1:flag;
-			flag=(j>y)?0:flag;
-			if (!flag) {
-				if ((write(fd,buf+l,strlen(buf+l)))==-1) {
-					close(fd);
-					return 0;
-				}
-				u8 t[1]={0x0a};
-				write(fd,t,1);
-			}
-			l=i+1;
-		}
-	}
-
-	closetmp();
-	rename(tp,template); /* aee */
-	tmpfd=fd;
-
-	/* fix current and last linea */
-	changeflag=1;
-	curline=x;
-	curline=(x!=1&&y==lastline)?x-1:curline;
-	curline=(x==1)?1:curline;
-	if (lastline>y)
-		lastline-=(y-x+1);
-	else if (lastline>=x&&lastline<=y)
-		lastline=x-1;
-	lastline=(lastline<1)?0:lastline;
-	curline=(!lastline)?lastline:curline;	/* all file deleted */
-
 	return 1;
 }
 
@@ -514,10 +582,12 @@ inline static void exec(void)
 		case L_CMD: if (!print(0,1)) goto err; break;
 		case EQ_CMD: if (!linenum()) goto err; break;
 		case W_CMD: if (!writefile()) goto err; break;
-		case D_CMD: if (!delete()) goto err; break;
+		case D_CMD: if (!delete(1)) goto err; break;
 		case J_CMD: if (!join()) goto err; break;
 		case K_CMD: mark(); break;
 		case R_CMD: if (!readfile()) goto err; break;
+		case M_CMD: if (!move()) goto err; break;
+		case T_CMD: if (!transfer(1)) goto err; break;
 	}
 	return;
 err:
@@ -690,6 +760,8 @@ L0:
 			case 'j': cmdcode=J_CMD; goto exit;
 			case 'k': cmdcode=K_CMD; goto exit;
 			case 'r': cmdcode=R_CMD; goto exit;
+			case 't': cmdcode=T_CMD; goto exit;
+			case 'm': cmdcode=M_CMD; goto exit;
 		}
 		goto err;
 	}
@@ -708,7 +780,8 @@ exit:
 	if (!x&&!y) {
 		switch (op) {
 			case 'p': case 'd': case 'n':
-			case 'l': case 'k':
+			case 'l': case 'k': case 'm':
+			case 't':
 				x=curline,y=x;
 				break;
 			case 'w':
